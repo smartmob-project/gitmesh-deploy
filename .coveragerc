@@ -1,0 +1,10 @@
+[run]
+branch = True
+source = gitmesh_deploy/
+
+[paths]
+source =
+  .tox/*/lib/*/site-packages/
+
+[html]
+directory = coverage
