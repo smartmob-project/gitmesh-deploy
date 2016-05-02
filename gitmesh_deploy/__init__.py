@@ -41,6 +41,8 @@ async def post_receive(updates):
     # Deploy only what comes into the master branch.
     update = updates.get('refs/heads/master')
     if update:
+        _, new_sha = update
+
         # Resolve hook configuration.
         storage = os.environ['GITMESH_DEPLOY_STORAGE']
         smartmob_agent = os.environ['GITMESH_DEPLOY_SMARTMOB_AGENT']
@@ -48,19 +50,21 @@ async def post_receive(updates):
         with aiohttp.ClientSession() as session:
 
             # Archive the requested commit.
-            _, path = tempfile.mkstemp('.zip')
+            _, path = tempfile.mkstemp('%s.zip' % new_sha)
             await check_output(
-                'git archive %s --output="%s"' % (update[1], path)
+                'git archive %s --output="%s"' % (new_sha, path)
             )
 
             # Upload the archive.
-            #
-            # TODO: generate a random name for the archive?
-            archive_url = urllib.parse.urljoin(storage, 'archive-123')
+            name = os.path.basename(path)
+            archive_url = urllib.parse.urljoin(storage, name)
             with open(path, 'rb') as stream:
                 data = stream.read()
-            async with session.put(archive_url, data=data) as r:
-                assert r.status == 201
+            head = {
+                'content-type': 'application/zip',
+            }
+            async with session.put(archive_url, data=data, headers=head) as r:
+                assert r.status in (201, 204)
 
             # Start the remote process.
             #
