@@ -49,6 +49,7 @@ async def test_post_receive_with_master(file_server, http_client,
         'GITMESH_DEPLOY_STORAGE': file_server,
         'GITMESH_DEPLOY_SMARTMOB_AGENT': mock_agent,
         'GITMESH_DEPLOY_SMARTMOB_APP': 'foo',
+        'GITMESH_REQUEST_ID': 'MY-REQUEST-ID',
     }
     with mock.patch.dict(os.environ, env):
         await post_receive({

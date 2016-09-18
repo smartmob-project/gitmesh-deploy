@@ -34,7 +34,9 @@ def file_server(event_loop, storage):
         data = await request.read()
         with open(path, 'wb') as stream:
             stream.write(data)
-        return aiohttp.web.Response(status=201)
+        return aiohttp.web.Response(status=201, headers={
+            'x-request-id': request.headers.get('x-request-id', '?'),
+        })
 
     # Prepare a simple unprotected file sharing app.
     app = aiohttp.web.Application(loop=event_loop)
@@ -76,15 +78,21 @@ def mock_agent(event_loop, storage):
                 request.host,
                 request.app.router['pending'].url(),
             ),
+        }, headers={
+            'x-request-id': request.headers.get('x-request-id', '?'),
         })
 
     async def deploy(request):
         requests.append(await request.json())
-        return aiohttp.web.Response(status=201)
+        return aiohttp.web.Response(status=201, headers={
+            'x-request-id': request.headers.get('x-request-id', '?'),
+        })
 
     async def pending(request):
         return aiohttp.web.json_response({
             'pending': requests,
+        }, headers={
+            'x-request-id': request.headers.get('x-request-id', '?'),
         })
 
     # Prepare a simple unprotected file sharing app.
