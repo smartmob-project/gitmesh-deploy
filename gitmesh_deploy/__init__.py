@@ -38,6 +38,9 @@ async def check_output(command):
 async def post_receive(updates):
     """gitmesh post-receive hook."""
 
+    # Access the request ID to forward it to other services.
+    request_id = os.environ.get('GITMESH_REQUEST_ID', '?')
+
     # Deploy only what comes into the master branch.
     update = updates.get('refs/heads/master')
     if update:
@@ -62,6 +65,7 @@ async def post_receive(updates):
                 data = stream.read()
             head = {
                 'content-type': 'application/zip',
+                'x-request-id': request_id,
             }
             async with session.put(archive_url, data=data, headers=head) as r:
                 assert r.status in (201, 204)
@@ -76,8 +80,15 @@ async def post_receive(updates):
                 'process_type': 'web',
                 'env': {},
             }).encode('utf-8')
-            async with session.get(smartmob_agent) as r:
+            head = {
+                'content-type': 'application/json',
+                'x-request-id': request_id,
+            }
+            async with session.get(smartmob_agent, headers=head) as r:
                 assert r.status == 200
+                assert r.headers['x-request-id'] == request_id
                 index = await r.json()
-            async with session.post(index['create'], data=req) as r:
+            url = index['create']
+            async with session.post(url, data=req, headers=head) as r:
                 assert r.status == 201
+                assert r.headers['x-request-id'] == request_id
